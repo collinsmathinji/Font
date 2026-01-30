@@ -38,6 +38,35 @@ export const POPULAR_PAIRINGS_FALLBACK: [string, string][] = [
   ["Plus Jakarta Sans", "Libre Baskerville"],
 ];
 
+/** Fallback font list when Supabase is not configured (e.g. deployed without env vars) */
+export const FALLBACK_FONTS: FontData[] = [
+  { family: "Playfair Display", category: "serif", weights: [400, 500, 600, 700, 800, 900], foundry: "Claus Eggers Sørensen", foundrySlug: "claus-eggers-sorensen", legibility: "medium" },
+  { family: "Raleway", category: "sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], foundry: "The League of Moveable Type", foundrySlug: "the-league-of-moveable-type", legibility: "high" },
+  { family: "Montserrat", category: "sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], foundry: "Julieta Ulanovsky", foundrySlug: "julieta-ulanovsky", legibility: "high" },
+  { family: "Lora", category: "serif", weights: [400, 500, 600, 700], foundry: "Cyreal", foundrySlug: "cyreal", legibility: "high" },
+  { family: "DM Serif Display", category: "serif", weights: [400], foundry: "Colophon Foundry", foundrySlug: "colophon-foundry", legibility: "medium" },
+  { family: "Space Grotesk", category: "sans-serif", weights: [300, 400, 500, 600, 700], foundry: "Florian Karsten", foundrySlug: "florian-karsten", legibility: "high" },
+  { family: "Oswald", category: "sans-serif", weights: [200, 300, 400, 500, 600, 700], foundry: "Vernon Adams", foundrySlug: "vernon-adams", legibility: "medium" },
+  { family: "Open Sans", category: "sans-serif", weights: [300, 400, 500, 600, 700, 800], foundry: "Steve Matteson", foundrySlug: "steve-matteson", legibility: "high" },
+  { family: "Cormorant Garamond", category: "serif", weights: [300, 400, 500, 600, 700], foundry: "Christian Thalmann", foundrySlug: "christian-thalmann", legibility: "high" },
+  { family: "Work Sans", category: "sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], foundry: "Wei Huang", foundrySlug: "wei-huang", legibility: "high" },
+  { family: "Crimson Text", category: "serif", weights: [400, 600, 700], foundry: "Sebastian Kosch", foundrySlug: "sebastian-kosch", legibility: "high" },
+  { family: "Nunito", category: "sans-serif", weights: [200, 300, 400, 500, 600, 700, 800, 900], foundry: "Vernon Adams", foundrySlug: "vernon-adams", legibility: "high" },
+  { family: "Libre Baskerville", category: "serif", weights: [400, 700], foundry: "Impallari Type", foundrySlug: "impallari-type", legibility: "high" },
+  { family: "Source Sans Pro", category: "sans-serif", weights: [200, 300, 400, 600, 700, 900], foundry: "Paul D. Hunt", foundrySlug: "paul-d-hunt", legibility: "high" },
+  { family: "Arvo", category: "serif", weights: [400, 700], foundry: "Anton Koovit", foundrySlug: "anton-koovit", legibility: "high" },
+  { family: "PT Sans", category: "sans-serif", weights: [400, 700], foundry: "ParaType", foundrySlug: "paratype", legibility: "high" },
+  { family: "Merriweather", category: "serif", weights: [300, 400, 700, 900], foundry: "Sorkin Type", foundrySlug: "sorkin-type", legibility: "high" },
+  { family: "Roboto", category: "sans-serif", weights: [100, 300, 400, 500, 700, 900], foundry: "Christian Robertson", foundrySlug: "christian-robertson", legibility: "high" },
+  { family: "Poppins", category: "sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], foundry: "Indian Type Foundry", foundrySlug: "indian-type-foundry", legibility: "high" },
+  { family: "Inter", category: "sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], foundry: "Rasmus Andersson", foundrySlug: "rasmus-andersson", legibility: "high" },
+  { family: "EB Garamond", category: "serif", weights: [400, 500, 600, 700, 800], foundry: "Georg Duffner", foundrySlug: "georg-duffner", legibility: "high" },
+  { family: "Bebas Neue", category: "display", weights: [400], foundry: "Ryoichi Tsunekawa", foundrySlug: "ryoichi-tsunekawa", legibility: "medium" },
+  { family: "Abril Fatface", category: "display", weights: [400], foundry: "TypeTogether", foundrySlug: "typetogether", legibility: "low" },
+  { family: "DM Sans", category: "sans-serif", weights: [100, 200, 300, 400, 500, 600, 700, 800, 900], foundry: "Colophon Foundry", foundrySlug: "colophon-foundry", legibility: "high" },
+  { family: "Plus Jakarta Sans", category: "sans-serif", weights: [200, 300, 400, 500, 600, 700, 800], foundry: "Tokotype", foundrySlug: "tokotype", legibility: "high" },
+];
+
 export function getFontByFamily(fonts: FontData[], family: string): FontData | undefined {
   return fonts.find((f) => f.family === family);
 }

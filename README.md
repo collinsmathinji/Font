@@ -89,6 +89,13 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
+**Backend connection on deploy:** The app talks to Supabase at build time via Vite env vars. For the deployed site to work, add these in your deployment platform’s **Environment Variables** (e.g. Vercel → Project → Settings → Environment Variables, or Netlify → Site → Environment variables):
+
+- `VITE_SUPABASE_URL` — your Supabase project URL (e.g. `https://xxxx.supabase.co`)
+- `VITE_SUPABASE_PUBLISHABLE_KEY` or `VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — your Supabase anon/publishable key (from Supabase → Settings → API)
+
+Redeploy after adding them so the build picks up the new values.
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
