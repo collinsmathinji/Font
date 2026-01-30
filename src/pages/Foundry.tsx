@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ExternalLink, Loader2 } from "lucide-react";
-import { loadGoogleFont } from "@/lib/fonts";
-import { useFontsByDesigner, GoogleFontData } from "@/hooks/useGoogleFonts";
+import { loadGoogleFont, FontData } from "@/lib/fonts";
+import { useFontsByDesignerFromSupabase } from "@/hooks/useFontsFromSupabase";
 import { Slider } from "@/components/ui/slider";
 import {
   Select,
@@ -21,8 +21,7 @@ export default function Foundry() {
   const [selectedWeight, setSelectedWeight] = useState<string>("400");
   const [sortBy, setSortBy] = useState<"name" | "popularity">("name");
 
-  // Fetch fonts from API
-  const { fonts, designerName, isLoading } = useFontsByDesigner(slug || "");
+  const { fonts, designerName, isLoading } = useFontsByDesignerFromSupabase(slug || "");
 
   // Load all fonts from this designer
   useEffect(() => {
@@ -213,7 +212,7 @@ export default function Foundry() {
 }
 
 interface FontRowProps {
-  font: GoogleFontData;
+  font: FontData;
   fontSize: number;
   weight: number;
 }

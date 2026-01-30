@@ -50,6 +50,31 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## Font catalog (Supabase)
+
+The app reads the full Google Fonts catalog from Supabase. To set it up:
+
+1. **Run the migration**  
+   In the [Supabase Dashboard](https://supabase.com/dashboard) → SQL Editor, run the SQL in `supabase/migrations/20250130120000_create_fonts_tables.sql` (creates `fonts` and `popular_pairings` tables).
+
+2. **Populate the catalog**  
+   Get your project URL and **service role** key from Supabase → Settings → API. Then:
+
+   ```sh
+   # In .env (or environment), set:
+   # SUPABASE_URL=https://your-project.supabase.co
+   # SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+   npm run seed:fonts
+   ```
+
+   This fetches all fonts from the public Google Fonts metadata API and upserts them into `fonts`, and seeds `popular_pairings` with curated pairs.
+
+3. **Refresh the catalog**  
+   Re-run `npm run seed:fonts` whenever you want to pull in new Google Fonts (e.g. after new releases).
+
+The React app uses `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (anon key) for the client; the seed script uses `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` for write access.
+
 ## What technologies are used for this project?
 
 This project is built with:

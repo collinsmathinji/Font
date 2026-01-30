@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed:fonts": "node scripts/populate-google-fonts.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

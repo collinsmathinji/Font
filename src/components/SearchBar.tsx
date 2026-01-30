@@ -1,6 +1,8 @@
-import { useState, useMemo } from "react";
-import { Search } from "lucide-react";
-import { fonts, FontData } from "@/lib/fonts";
+import { useState } from "react";
+import { Search, Loader2 } from "lucide-react";
+import { FontData } from "@/lib/fonts";
+import { useSearchFontsFromSupabase } from "@/hooks/useFontsFromSupabase";
+import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 
 interface SearchBarProps {
@@ -10,15 +12,10 @@ interface SearchBarProps {
 export function SearchBar({ onSelectFont }: SearchBarProps) {
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const debouncedQuery = useDebounce(query, 300);
 
-  const filteredFonts = useMemo(() => {
-    if (!query.trim()) return [];
-    const lowerQuery = query.toLowerCase();
-    return fonts.filter(font => 
-      font.family.toLowerCase().includes(lowerQuery) ||
-      font.foundry.toLowerCase().includes(lowerQuery)
-    ).slice(0, 8);
-  }, [query]);
+  const { data: filteredFonts = [], isLoading } = useSearchFontsFromSupabase(debouncedQuery);
+  const displayFonts = filteredFonts.slice(0, 8);
 
   const handleSelectFont = (font: FontData) => {
     onSelectFont(font, "header");
@@ -34,7 +31,11 @@ export function SearchBar({ onSelectFont }: SearchBarProps) {
           isFocused && "ring-2 ring-foreground/10"
         )}
       >
-        <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        {isLoading && debouncedQuery ? (
+          <Loader2 className="w-4 h-4 text-muted-foreground flex-shrink-0 animate-spin" />
+        ) : (
+          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        )}
         <input
           type="text"
           value={query}
@@ -46,10 +47,9 @@ export function SearchBar({ onSelectFont }: SearchBarProps) {
         />
       </div>
 
-      {/* Dropdown */}
-      {filteredFonts.length > 0 && isFocused && (
+      {displayFonts.length > 0 && isFocused && query.trim() && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg overflow-hidden z-50 animate-slide-up">
-          {filteredFonts.map((font) => (
+          {displayFonts.map((font) => (
             <button
               key={font.family}
               onClick={() => handleSelectFont(font)}
@@ -60,7 +60,7 @@ export function SearchBar({ onSelectFont }: SearchBarProps) {
               )}
             >
               <div>
-                <div 
+                <div
                   className="font-medium"
                   style={{ fontFamily: `"${font.family}", ${font.category}` }}
                 >

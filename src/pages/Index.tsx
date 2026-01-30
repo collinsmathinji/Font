@@ -1,28 +1,47 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import { FontSection } from "@/components/FontSection";
 import { GlobalSearchBar } from "@/components/GlobalSearchBar";
 import { TabNav } from "@/components/TabNav";
 import { ShuffleTooltip } from "@/components/ShuffleTooltip";
 import {
   FontData,
-  fonts,
   getFontByFamily,
+  getFontByFamilyRelaxed,
   getComplementaryFont,
   getRandomPair,
   loadGoogleFont,
   preloadFonts,
-  popularPairings,
+  POPULAR_PAIRINGS_FALLBACK,
 } from "@/lib/fonts";
+import { useAllFontsFromSupabase, usePopularPairingsFromSupabase } from "@/hooks/useFontsFromSupabase";
 
 const DEFAULT_HEADER_TEXT = "All in the recognition of inherent dignity";
 const DEFAULT_BODY_TEXT = `Underpinned by Newton's immutable logic – what goes up, must come down – this new field of energy storage technology is, in principle, remarkably simple. When green energy is plentiful, use it to haul a colossal weight to a predetermined height. When renewables are limited, release the load, powering a generator with the downward gravitational pull.`;
 
+const PLACEHOLDER_FONT: FontData = {
+  family: "Roboto",
+  category: "sans-serif",
+  weights: [400, 700],
+  foundry: "Google",
+  foundrySlug: "google",
+  legibility: "high",
+};
+
 type TabType = "popular" | "foundry";
 
 export default function Index() {
-  const [headerFont, setHeaderFont] = useState<FontData>(fonts[0]);
-  const [bodyFont, setBodyFont] = useState<FontData>(fonts[1]);
+  const { data: fonts = [], isLoading: fontsLoading } = useAllFontsFromSupabase();
+  const { data: popularPairingsFromDb = [] } = usePopularPairingsFromSupabase();
+
+  const popularPairings = useMemo(
+    () => (popularPairingsFromDb.length > 0 ? popularPairingsFromDb : POPULAR_PAIRINGS_FALLBACK),
+    [popularPairingsFromDb]
+  );
+
+  const [headerFont, setHeaderFont] = useState<FontData>(PLACEHOLDER_FONT);
+  const [bodyFont, setBodyFont] = useState<FontData>(PLACEHOLDER_FONT);
   const [headerLocked, setHeaderLocked] = useState(false);
   const [bodyLocked, setBodyLocked] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("popular");
@@ -30,31 +49,51 @@ export default function Index() {
   const [showTooltip, setShowTooltip] = useState(true);
   const [popularIndex, setPopularIndex] = useState(0);
 
-  // Initialize with a random pair
+  // Initialize when fonts load: first valid popular pairing, else random pair
   useEffect(() => {
-    preloadFonts();
-    const [header, body] = getRandomPair();
+    if (fonts.length === 0) return;
+    preloadFonts(fonts);
+    const pairings = popularPairings.length > 0 ? popularPairings : POPULAR_PAIRINGS_FALLBACK;
+    if (pairings.length > 0) {
+      for (let i = 0; i < pairings.length; i++) {
+        const [headerFamily, bodyFamily] = pairings[i];
+        const header = getFontByFamilyRelaxed(fonts, headerFamily);
+        const body = getFontByFamilyRelaxed(fonts, bodyFamily);
+        if (header && body) {
+          setHeaderFont(header);
+          setBodyFont(body);
+          setPopularIndex(i);
+          return;
+        }
+      }
+    }
+    const [header, body] = getRandomPair(fonts);
     setHeaderFont(header);
     setBodyFont(body);
-  }, []);
+  }, [fonts.length === 0 ? null : fonts]);
 
-  // Load fonts when they change
+  // Load current pair fonts in the document
   useEffect(() => {
-    loadGoogleFont(headerFont.family);
-    loadGoogleFont(bodyFont.family);
+    loadGoogleFont(headerFont.family, headerFont.weights);
+    loadGoogleFont(bodyFont.family, bodyFont.weights);
   }, [headerFont, bodyFont]);
 
   const shuffle = useCallback(() => {
-    if (activeTab === "popular") {
-      // Cycle through popular pairings
-      const nextIndex = (popularIndex + 1) % popularPairings.length;
-      setPopularIndex(nextIndex);
-      const [headerFamily, bodyFamily] = popularPairings[nextIndex];
-      const header = getFontByFamily(headerFamily);
-      const body = getFontByFamily(bodyFamily);
-      if (header && body) {
-        if (!headerLocked) setHeaderFont(header);
-        if (!bodyLocked) setBodyFont(body);
+    if (fonts.length === 0) return;
+
+    if (activeTab === "popular" && popularPairings.length > 0) {
+      // Cycle through pairings; skip any where a font isn't in the catalog
+      for (let i = 1; i <= popularPairings.length; i++) {
+        const nextIndex = (popularIndex + i) % popularPairings.length;
+        const [headerFamily, bodyFamily] = popularPairings[nextIndex];
+        const header = getFontByFamilyRelaxed(fonts, headerFamily);
+        const body = getFontByFamilyRelaxed(fonts, bodyFamily);
+        if (header && body) {
+          setPopularIndex(nextIndex);
+          if (!headerLocked) setHeaderFont(header);
+          if (!bodyLocked) setBodyFont(body);
+          return;
+        }
       }
       return;
     }
@@ -62,23 +101,26 @@ export default function Index() {
     if (headerLocked && bodyLocked) return;
 
     if (headerLocked) {
-      const newBody = getComplementaryFont(headerFont, "body");
+      const newBody = getComplementaryFont(fonts, headerFont, "body");
       setBodyFont(newBody);
     } else if (bodyLocked) {
-      const newHeader = getComplementaryFont(bodyFont, "header");
+      const newHeader = getComplementaryFont(fonts, bodyFont, "header");
       setHeaderFont(newHeader);
     } else {
-      const [header, body] = getRandomPair();
+      const [header, body] = getRandomPair(fonts);
       setHeaderFont(header);
       setBodyFont(body);
     }
-  }, [headerLocked, bodyLocked, headerFont, bodyFont, activeTab, popularIndex]);
+  }, [fonts, headerLocked, bodyLocked, headerFont, bodyFont, activeTab, popularIndex, popularPairings]);
 
-  // Keyboard shortcut
+  // Keyboard shortcut: Space to shuffle
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === "Space" && document.activeElement?.tagName !== "INPUT" && 
-          !(document.activeElement as HTMLElement)?.isContentEditable) {
+      if (
+        e.code === "Space" &&
+        document.activeElement?.tagName !== "INPUT" &&
+        !(document.activeElement as HTMLElement)?.isContentEditable
+      ) {
         e.preventDefault();
         shuffle();
         setShowTooltip(false);
@@ -107,63 +149,46 @@ export default function Index() {
   const handleDrop = (targetPosition: "header" | "body") => (e: React.DragEvent) => {
     e.preventDefault();
     setDragOverPosition(null);
-    
-    const sourcePosition = e.dataTransfer.getData("position") as "header" | "body";
-    if (sourcePosition === targetPosition) return;
 
-    // Swap fonts
+    const sourcePosition = e.dataTransfer.getData("position") as "header" | "body";
+    if (sourcePosition === targetPosition || fonts.length === 0) return;
+
     if (sourcePosition === "header" && targetPosition === "body") {
       const oldHeader = headerFont;
       setBodyFont(oldHeader);
       setBodyLocked(true);
-      // Generate new header
-      const newHeader = getComplementaryFont(oldHeader, "header");
-      setHeaderFont(newHeader);
+      setHeaderFont(getComplementaryFont(fonts, oldHeader, "header"));
       setHeaderLocked(false);
     } else {
       const oldBody = bodyFont;
       setHeaderFont(oldBody);
       setHeaderLocked(true);
-      // Generate new body
-      const newBody = getComplementaryFont(oldBody, "body");
-      setBodyFont(newBody);
+      setBodyFont(getComplementaryFont(fonts, oldBody, "body"));
       setBodyLocked(false);
-    }
-  };
-
-  const handleSearchSelect = (font: FontData, position: "header" | "body") => {
-    if (position === "header") {
-      setHeaderFont(font);
-      setHeaderLocked(true);
-      if (!bodyLocked) {
-        const newBody = getComplementaryFont(font, "body");
-        setBodyFont(newBody);
-      }
-    } else {
-      setBodyFont(font);
-      setBodyLocked(true);
-      if (!headerLocked) {
-        const newHeader = getComplementaryFont(font, "header");
-        setHeaderFont(newHeader);
-      }
     }
   };
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
-    if (tab === "popular") {
-      const [headerFamily, bodyFamily] = popularPairings[popularIndex];
-      const header = getFontByFamily(headerFamily);
-      const body = getFontByFamily(bodyFamily);
-      if (header && body) {
-        setHeaderFont(header);
-        setBodyFont(body);
+    if (fonts.length === 0) return;
+    if (tab === "popular" && popularPairings.length > 0) {
+      // Show first valid pairing from the list (or current index if valid)
+      for (let i = 0; i < popularPairings.length; i++) {
+        const idx = (popularIndex + i) % popularPairings.length;
+        const [headerFamily, bodyFamily] = popularPairings[idx];
+        const header = getFontByFamilyRelaxed(fonts, headerFamily);
+        const body = getFontByFamilyRelaxed(fonts, bodyFamily);
+        if (header && body) {
+          setPopularIndex(idx);
+          setHeaderFont(header);
+          setBodyFont(body);
+          break;
+        }
       }
     } else if (tab === "foundry") {
-      // Find two fonts from the same foundry
-      const foundries = [...new Set(fonts.map(f => f.foundry))];
-      for (const foundry of foundries) {
-        const fontsFromFoundry = fonts.filter(f => f.foundry === foundry);
+      const foundrySlugs = [...new Set(fonts.map((f) => f.foundrySlug))];
+      for (const slug of foundrySlugs) {
+        const fontsFromFoundry = fonts.filter((f) => f.foundrySlug === slug);
         if (fontsFromFoundry.length >= 2) {
           setHeaderFont(fontsFromFoundry[0]);
           setBodyFont(fontsFromFoundry[1]);
@@ -173,42 +198,43 @@ export default function Index() {
     }
   };
 
+  if (fontsLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Loading fonts...</p>
+      </div>
+    );
+  }
+
   return (
-    <div 
+    <div
       className="min-h-screen bg-background flex flex-col"
       onDragLeave={handleDragLeave}
     >
       {/* Header */}
       <header className="border-b border-border/50">
         <div className="container mx-auto px-6 md:px-12 py-4 flex items-center justify-between gap-4">
-          {/* Logo */}
           <Link to="/" className="flex-shrink-0">
             <div className="w-10 h-10 bg-foreground rounded-lg flex items-center justify-center">
               <span className="text-background font-bold text-xl">F</span>
             </div>
           </Link>
-
-          {/* Search */}
           <GlobalSearchBar />
-
-          {/* Spacer */}
           <div className="w-10 flex-shrink-0" />
         </div>
       </header>
 
-      {/* Navigation */}
       <nav className="border-b border-border/50">
         <div className="container mx-auto px-6 md:px-12 py-3 flex items-center gap-6">
           <span className="text-sm font-medium">Font Pairing Tool</span>
         </div>
       </nav>
 
-      {/* Tabs */}
       <div className="container mx-auto px-6 md:px-12 pb-8">
         <TabNav activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
 
-      {/* Font Sections */}
       <main className="flex-1">
         <FontSection
           key={`header-${headerFont.family}`}
@@ -237,7 +263,6 @@ export default function Index() {
         />
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-border/50 mt-auto">
         <div className="container mx-auto px-6 md:px-12 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
@@ -261,7 +286,6 @@ export default function Index() {
         </div>
       </footer>
 
-      {/* Shuffle Tooltip */}
       <ShuffleTooltip show={showTooltip} onDismiss={() => setShowTooltip(false)} />
     </div>
   );
